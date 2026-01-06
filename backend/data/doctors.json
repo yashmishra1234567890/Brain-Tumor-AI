@@ -1,0 +1,126 @@
+[
+  {
+    "city": "Indore",
+    "name": "MGM Medical College & MY Hospital - Neurology Department",
+    "type": "Government",
+    "specialization": "Neurology",
+    "confidence_level": "High",
+    "reason": "Government medical college with dedicated neurology services"
+  },
+  {
+    "city": "Indore",
+    "name": "Aurobindo Medical College & Hospital - Neurosurgery Department",
+    "type": "Academic",
+    "specialization": "Neurosurgery",
+    "confidence_level": "High",
+    "reason": "Academic medical institution with neurosurgery facilities"
+  },
+  {
+    "city": "Indore",
+    "name": "CHL Hospital Apollo - Neurosciences Department",
+    "type": "Multi-specialty",
+    "specialization": "Neurosurgery",
+    "confidence_level": "Medium",
+    "reason": "Multi-specialty hospital with advanced neuroscience care"
+  },
+
+  {
+    "city": "Delhi",
+    "name": "AIIMS New Delhi - Neurology Department",
+    "type": "Government",
+    "specialization": "Neurology",
+    "confidence_level": "High",
+    "reason": "Premier government institute for neurological care"
+  },
+  {
+    "city": "Delhi",
+    "name": "Safdarjung Hospital - Neurosurgery Department",
+    "type": "Government",
+    "specialization": "Neurosurgery",
+    "confidence_level": "High",
+    "reason": "Tertiary care government hospital with neurosurgery services"
+  },
+  {
+    "city": "Delhi",
+    "name": "Max Super Speciality Hospital - Neurosciences",
+    "type": "Multi-specialty",
+    "specialization": "Neurosurgery",
+    "confidence_level": "Medium",
+    "reason": "Multi-specialty hospital with neurology and neurosurgery departments"
+  },
+
+  {
+    "city": "Mumbai",
+    "name": "KEM Hospital & Seth GS Medical College - Neurology Department",
+    "type": "Government",
+    "specialization": "Neurology",
+    "confidence_level": "High",
+    "reason": "Renowned government medical college with neurology services"
+  },
+  {
+    "city": "Mumbai",
+    "name": "Tata Memorial Hospital - Neuro-Oncology",
+    "type": "Government",
+    "specialization": "Neurosurgery",
+    "confidence_level": "High",
+    "reason": "Specialized center for neuro-oncology and brain tumor care"
+  },
+  {
+    "city": "Mumbai",
+    "name": "Bombay Hospital - Neurosciences Department",
+    "type": "Multi-specialty",
+    "specialization": "Neurosurgery",
+    "confidence_level": "Medium",
+    "reason": "Multi-specialty hospital with neurosurgery facilities"
+  },
+
+  {
+    "city": "Bhopal",
+    "name": "AIIMS Bhopal - Neurology Department",
+    "type": "Government",
+    "specialization": "Neurology",
+    "confidence_level": "High",
+    "reason": "Government institute providing advanced neurological care"
+  },
+  {
+    "city": "Bhopal",
+    "name": "Gandhi Medical College & Hamidia Hospital - Neurosurgery",
+    "type": "Government",
+    "specialization": "Neurosurgery",
+    "confidence_level": "High",
+    "reason": "Academic government hospital with neurosurgery services"
+  },
+  {
+    "city": "Bhopal",
+    "name": "Bansal Hospital - Neurosciences",
+    "type": "Multi-specialty",
+    "specialization": "Neurosurgery",
+    "confidence_level": "Medium",
+    "reason": "Multi-specialty hospital with neurology and neurosurgery units"
+  },
+
+  {
+    "city": "Bangalore",
+    "name": "NIMHANS - Neurology Department",
+    "type": "Government",
+    "specialization": "Neurology",
+    "confidence_level": "High",
+    "reason": "National institute specializing in mental health and neurosciences"
+  },
+  {
+    "city": "Bangalore",
+    "name": "Victoria Hospital - Neurosurgery Department",
+    "type": "Government",
+    "specialization": "Neurosurgery",
+    "confidence_level": "High",
+    "reason": "Government hospital with neurosurgical care facilities"
+  },
+  {
+    "city": "Bangalore",
+    "name": "Manipal Hospital - Neurosciences",
+    "type": "Multi-specialty",
+    "specialization": "Neurosurgery",
+    "confidence_level": "Medium",
+    "reason": "Multi-specialty hospital offering comprehensive neuroscience care"
+  }
+]
