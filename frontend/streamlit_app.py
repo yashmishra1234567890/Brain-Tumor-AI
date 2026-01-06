@@ -1,241 +1,203 @@
 import streamlit as st
 import requests
-import time
 import os
 import sys
 
-# --- Configuration ---
+# --- Page Config ---
 st.set_page_config(
-    page_title="NeuroScan AI",
+    page_title="AI Brain Tumor Detection",
     page_icon="🧠",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Toggle this for deployment
-# Options: "Cloud" (Streamlit Share), "Local" (FastAPI running separately)
-DEPLOYMENT_MODE = "Cloud"
-
+# --- Configuration ---
+DEPLOYMENT_MODE = "Cloud" # "Cloud" for Streamlit Share, "Local" for separate Backend
 BACKEND_URL = "http://localhost:8001"
 
-# Setup Backend Path for Cloud Mode
+# --- Backend Integration (Cloud Mode) ---
 if DEPLOYMENT_MODE == "Cloud":
-    # Get the absolute path to the project root (one level up from frontend)
     PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     if PROJECT_ROOT not in sys.path:
         sys.path.append(PROJECT_ROOT)
     
-    # Import backend services directly
+    # Load Environment Variables
+    try:
+        from dotenv import load_dotenv
+        env_path = os.path.join(PROJECT_ROOT, '.env')
+        if os.path.exists(env_path): load_dotenv(env_path)
+    except: pass
+    
+    # Load Secrets
+    try:
+        if st.secrets:
+            for k, v in st.secrets.items(): os.environ[k] = str(v)
+    except: pass
+
     try:
         from backend.services.predictor import predict_mri
         from backend.services.llm_explainer import generate_medical_explanation
         from backend.services.doctor_finder import get_doctors_by_city
-        
-        # Load secrets into os.environ for backend modules to see
-        # Priority: 1. Streamlit Secrets (Cloud), 2. dotenv (Local)
-        try:
-            # Try loading from .env file for local testing
-            from dotenv import load_dotenv
-            load_dotenv()
-            
-            if hasattr(st, "secrets"):
-                for key, value in st.secrets.items():
-                    os.environ[key] = str(value)
-        except Exception:
-            pass  # No secrets found, likely running locally without secrets.toml
-                
     except ImportError as e:
-        st.error(f"Failed to import backend modules: {e}")
+        st.error(f"Backend modules missing: {e}")
         st.stop()
 
-# --- Custom CSS ---
+# --- Custom Styling (Matches Clean Medical UI) ---
 st.markdown("""
 <style>
-    .main {
-        background-color: #f5f5f5;
+    .big-font { font-size:24px !important; font-weight: bold; }
+    .prediction-card {
+        padding: 20px;
+        border-radius: 10px;
+        border: 1px solid #e0e0e0;
+        background-color: #ffffff;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        text-align: center;
     }
-    .stButton>button {
-        width: 100%;
-    }
-    .status-badge {
-        padding: 5px 10px;
-        border-radius: 5px;
-        font-weight: bold;
-        color: white;
-    }
-    .status-online {
-        background-color: #28a745;
-    }
-    .status-offline {
-        background-color: #dc3545;
-    }
+    .stProgress > div > div > div > div { background-color: #4CAF50; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- Helper Functions ---
-def check_api_health():
-    if DEPLOYMENT_MODE == "Cloud":
-        # In cloud mode, if imports worked, we are "online"
-        return True, "Integrated Mode"
-    else:
-        try:
-            response = requests.get(f"{BACKEND_URL}/", timeout=2)
-            if response.status_code == 200:
-                return True, response.json().get("status", "Unknown")
-        except requests.exceptions.ConnectionError:
-            return False, "Connection refused"
-        except Exception as e:
-            return False, str(e)
-        return False, "Unknown Error"
-
 # --- Sidebar ---
 with st.sidebar:
-    st.title("🧠 NeuroScan AI")
+    st.image("https://img.icons8.com/color/96/brain--v1.png", width=80)
+    st.title("NeuroScan AI")
+    st.markdown("### Intelligent Diagnostic Assistant")
+    st.info("Upload an MRI scan to detect tumors and receive AI-generated medical explanations.")
     st.markdown("---")
-    
-    st.subheader("System Status")
-    is_online, status_msg = check_api_health()
-    
-    if is_online:
-        st.markdown(f'<div class="status-badge status-online">🟢 API Online</div>', unsafe_allow_html=True)
-        st.caption(f"Response: {status_msg}")
-    else:
-        st.markdown(f'<div class="status-badge status-offline">🔴 API Offline</div>', unsafe_allow_html=True)
-        if DEPLOYMENT_MODE == "Local":
-            st.caption("Please ensure the backend server is running on port 8001.")
-        
-    st.markdown("---")
-    st.info(
-        "**About**\n\n"
-        "This advanced MRI diagnostic assistant uses Deep Learning to classify brain tumors into 4 categories:\n"
-        "- Glioma\n- Meningioma\n- Pituitary\n- No Tumor"
-    )
+    st.markdown("**/ Status**: 🟢 System Online")
+    st.markdown("**/ Version**: 2.0.0 (Cloud)")
 
-# --- Main Page ---
-st.title("🏥 Brain Tumor MRI Analysis")
-st.markdown("Upload a brain MRI scan to detect potential tumors and generate medical insights.")
-
-# Layout
-col1, col2 = st.columns([1, 1.5])
+# --- Main Layout ---
+col1, col2 = st.columns([1, 1])
 
 with col1:
-    st.subheader("1. Input Image")
+    st.subheader("📤 Upload MRI Scan")
     
-    input_method = st.radio("Choose input method:", ["Upload Image", "Use Sample Image"])
+    # Input Selection
+    input_type = st.radio("Select Input:", ["Upload Image", "Sample Image"], horizontal=True)
     
-    image_data = None
-    file_name = None
+    image_bytes = None
+    display_image = None
     
-    if input_method == "Upload Image":
-        uploaded_file = st.file_uploader("Choose a file...", type=["jpg", "png", "jpeg"])
-        if uploaded_file:
-            st.image(uploaded_file, caption="Uploaded MRI Scan", use_container_width=True)
-            image_data = uploaded_file.getvalue()
-            file_name = uploaded_file.name
-
+    if input_type == "Upload Image":
+        uploaded = st.file_uploader("Choose MRI Image...", type=["jpg", "jpeg", "png"])
+        if uploaded:
+            image_bytes = uploaded.getvalue()
+            display_image = uploaded
+            st.image(uploaded, caption="Preview", use_container_width=True)
+            
     else:
-        # relative path to image_test_sample from root
-        sample_dir = "image_test_sample"
-        # Handle case if running from frontend dir (locally mostly)
-        if not os.path.exists(sample_dir) and os.path.exists(os.path.join("..", sample_dir)):
-             sample_dir = os.path.join("..", sample_dir)
-            
+        sample_dir = os.path.join(os.path.dirname(__file__), "..", "image_test_sample")
         if os.path.exists(sample_dir):
-            sample_files = sorted([f for f in os.listdir(sample_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))])
-            selected_sample = st.selectbox("Select a sample image:", sample_files)
-            
-            if selected_sample:
-                file_path = os.path.join(sample_dir, selected_sample)
-                st.image(file_path, caption=f"Sample: {selected_sample}", use_container_width=True)
-                with open(file_path, "rb") as f:
-                    image_data = f.read()
-                file_name = selected_sample
-        else:
-            st.warning("Sample directory not found.")
+            files = [f for f in os.listdir(sample_dir) if f.lower().endswith(('jpg','png'))]
+            idx = st.selectbox("Choose Sample:", files)
+            if idx:
+                path = os.path.join(sample_dir, idx)
+                st.image(path, caption=idx, use_container_width=True)
+                with open(path, "rb") as f:
+                    image_bytes = f.read()
 
 with col2:
-    st.subheader("2. Analysis Results")
+    st.subheader("📊 Analysis Results")
     
-    if image_data:
-        if not is_online:
-            st.error("Cannot proceed. Backend API is offline.")
-        else:
-            with st.spinner("Analyzing image..."):
+    if image_bytes:
+        # Use session state to persist results across reruns (e.g. when typing city name)
+        if st.button("🔍 Analyze Scan", type="primary", use_container_width=True):
+            with st.spinner("Running Deep Learning Analysis..."):
                 try:
-                    result = None
-                    
+                    # 1. Prediction
                     if DEPLOYMENT_MODE == "Cloud":
-                        # Direct call
-                        result = predict_mri(image_data)
+                        res = predict_mri(image_bytes)
                     else:
-                        # HTTP Call
-                        files = {"file": (file_name, image_data, "image/jpeg")}
-                        response = requests.post(f"{BACKEND_URL}/predict", files=files, timeout=10)
-                        if response.status_code == 200:
-                            result = response.json()
-                        else:
-                            st.error(f"Prediction failed: {response.status_code}")
+                        files = {"file": ("img.jpg", image_bytes, "image/jpeg")}
+                        res = requests.post(f"{BACKEND_URL}/predict", files=files).json()
                     
-                    if result:
-                        prediction = result['prediction']
-                        confidence = result['confidence']
-                        probs = result['all_probabilities']
-                        
-                        # Display Metrics
-                        m1, m2 = st.columns(2)
-                        m1.metric("Prediction", prediction)
-                        m2.metric("Confidence", f"{confidence}%")
-                        
-                        # Display Probability Chart
-                        st.subheader("Class Probabilities")
-                        st.bar_chart(probs)
-                        
-                        # Advanced Features Tabs
-                        tab1, tab2 = st.tabs(["🤖 AI Explanation", "👨‍⚕️ Find Specialist"])
-                        
-                        with tab1:
-                            if st.button("Generate Detailed Explanation"):
-                                with st.spinner("Consulting AI Specialist..."):
-                                    expl_res = {}
-                                    if DEPLOYMENT_MODE == "Cloud":
-                                        expl_res = generate_medical_explanation(result)
-                                    else:
-                                        expl_res = requests.post(
-                                            f"{BACKEND_URL}/explain",
-                                            json=result
-                                        ).json()
-                                        
-                                    st.markdown("### Medical Insight")
-                                    st.write(expl_res.get("explanation", "No explanation available."))
-                                    st.warning(f"⚠️ **Disclaimer:** {expl_res.get('disclaimer')}")
-                                    
-                        with tab2:
-                            city = st.text_input("Enter your city to find nearby neurologists:", placeholder="e.g., Indore, Mumbai")
-                            if city:
-                                doctors = []
-                                if DEPLOYMENT_MODE == "Cloud":
-                                     # The finder returns a list directly
-                                     doctors = get_doctors_by_city(city)
-                                else:
-                                    doc_res = requests.get(f"{BACKEND_URL}/doctors", params={"city": city}).json()
-                                    doctors = doc_res.get("doctors", [])
-                                
-                                if doctors:
-                                    for doc in doctors:
-                                        with st.expander(f"{doc['name']} ({doc['specialization']})"):
-                                            st.write(f"**Hospital:** {doc.get('hospital', doc.get('name'))}")
-                                            st.write(f"**Contact:** {doc.get('contact', 'N/A')}")
-                                            
-                                else:
-                                    st.info(f"No specialists found in {city}.")
-                        
-                except Exception as e:
-                    # Detailed error for debugging in cloud
-                    import traceback
-                    st.error(f"Error during analysis: {str(e)}")
+                    # 2. AI Explanation
                     if DEPLOYMENT_MODE == "Cloud":
-                        st.text(traceback.format_exc())
+                        expl_res = generate_medical_explanation(res)
+                    else:
+                        expl_res = requests.post(f"{BACKEND_URL}/explain", json=res).json()
+                        
+                    # Store in session state
+                    st.session_state['analysis_done'] = True
+                    st.session_state['prediction_result'] = res
+                    st.session_state['explanation_result'] = expl_res
+                    
+                except Exception as e:
+                    st.error(f"Analysis Failed: {e}")
+
+        # Display content if analysis is done
+        if st.session_state.get('analysis_done'):
+            res = st.session_state['prediction_result']
+            expl_res = st.session_state['explanation_result']
+
+            # Display Prediction Card
+            st.markdown(f"""
+            <div class="prediction-card">
+                <h2 style='margin:0; color:#2c3e50;'>{res['prediction']}</h2>
+                <p style='color:#7f8c8d;'>Confidence Score</p>
+                <h1 style='color:#27ae60;'>{res['confidence']}%</h1>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.write("") # Spacer
+            
+            # Probabilities
+            st.caption("Class Probabilities")
+            probs = res['all_probabilities']
+            for label, prob in probs.items():
+                st.progress(int(prob), text=f"{label}: {prob}%")
+
+            st.divider()
+
+            # AI Explanation
+            st.subheader("🤖 AI Medical Insight")
+            with st.expander("Read AI Explanation", expanded=True):
+                st.markdown(expl_res.get("explanation", "Narrative unavailable."))
+                st.warning(f"Note: {expl_res.get('disclaimer')}")
+
+            st.divider()
+
+            # Doctor Finder
+            with st.expander("👨‍⚕️ Locate Specialists Nearby"):
+                with st.form("doctor_finder_form"):
+                    city = st.text_input("Enter City Name (e.g., Mumbai, Indore)")
+                    submit_search = st.form_submit_button("Find Doctors")
+                
+                if submit_search and city:
+                    if DEPLOYMENT_MODE == "Cloud":
+                        docs = get_doctors_by_city(city)
+                    else:
+                        try:
+                            resp = requests.get(f"{BACKEND_URL}/doctors?city={city}", timeout=5)
+                            if resp.status_code == 200:
+                                docs = resp.json().get("doctors", [])
+                            else:
+                                docs = []
+                        except:
+                            docs = []
+                    
+                    if docs:
+                        for d in docs:
+                            with st.container():
+                                st.markdown(f"### {d.get('name')}")
+                                col_a, col_b = st.columns(2)
+                                with col_a:
+                                    st.markdown(f"**Type:** {d.get('type')}")
+                                    st.markdown(f"**Specialization:** {d.get('specialization')}")
+                                with col_b:
+                                    st.markdown(f"**Confidence:** {d.get('confidence_level')}")
+                                
+                                st.markdown(f"_{d.get('reason')}_")
+                                st.divider()
+                    else:
+                        st.info(f"No specialists found in '{city}'.")
     else:
-        st.info("👈 Please upload or select an MRI image to start the analysis.")
+        st.info("👈 Please select or upload an MRI image to begin.")
+        # Reset state if no image
+        if 'analysis_done' in st.session_state:
+            del st.session_state['analysis_done']
+
 
 
