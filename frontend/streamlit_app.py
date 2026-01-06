@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import time
 import os
+import sys
 
 # --- Configuration ---
 st.set_page_config(
@@ -11,7 +12,41 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Toggle this for deployment
+# Options: "Cloud" (Streamlit Share), "Local" (FastAPI running separately)
+DEPLOYMENT_MODE = "Cloud"
+
 BACKEND_URL = "http://localhost:8001"
+
+# Setup Backend Path for Cloud Mode
+if DEPLOYMENT_MODE == "Cloud":
+    # Get the absolute path to the project root (one level up from frontend)
+    PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    if PROJECT_ROOT not in sys.path:
+        sys.path.append(PROJECT_ROOT)
+    
+    # Import backend services directly
+    try:
+        from backend.services.predictor import predict_mri
+        from backend.services.llm_explainer import generate_medical_explanation
+        from backend.services.doctor_finder import get_doctors_by_city
+        
+        # Load secrets into os.environ for backend modules to see
+        # Priority: 1. Streamlit Secrets (Cloud), 2. dotenv (Local)
+        try:
+            # Try loading from .env file for local testing
+            from dotenv import load_dotenv
+            load_dotenv()
+            
+            if hasattr(st, "secrets"):
+                for key, value in st.secrets.items():
+                    os.environ[key] = str(value)
+        except Exception:
+            pass  # No secrets found, likely running locally without secrets.toml
+                
+    except ImportError as e:
+        st.error(f"Failed to import backend modules: {e}")
+        st.stop()
 
 # --- Custom CSS ---
 st.markdown("""
@@ -39,15 +74,19 @@ st.markdown("""
 
 # --- Helper Functions ---
 def check_api_health():
-    try:
-        response = requests.get(f"{BACKEND_URL}/", timeout=2)
-        if response.status_code == 200:
-            return True, response.json().get("status", "Unknown")
-    except requests.exceptions.ConnectionError:
-        return False, "Connection refused"
-    except Exception as e:
-        return False, str(e)
-    return False, "Unknown Error"
+    if DEPLOYMENT_MODE == "Cloud":
+        # In cloud mode, if imports worked, we are "online"
+        return True, "Integrated Mode"
+    else:
+        try:
+            response = requests.get(f"{BACKEND_URL}/", timeout=2)
+            if response.status_code == 200:
+                return True, response.json().get("status", "Unknown")
+        except requests.exceptions.ConnectionError:
+            return False, "Connection refused"
+        except Exception as e:
+            return False, str(e)
+        return False, "Unknown Error"
 
 # --- Sidebar ---
 with st.sidebar:
@@ -62,7 +101,8 @@ with st.sidebar:
         st.caption(f"Response: {status_msg}")
     else:
         st.markdown(f'<div class="status-badge status-offline">🔴 API Offline</div>', unsafe_allow_html=True)
-        st.caption("Please ensure the backend server is running on port 8001.")
+        if DEPLOYMENT_MODE == "Local":
+            st.caption("Please ensure the backend server is running on port 8001.")
         
     st.markdown("---")
     st.info(
@@ -94,14 +134,11 @@ with col1:
             file_name = uploaded_file.name
 
     else:
-        # relative path to image_test_sample from frontend directory (where app runs presumably?)
-        # Actually standard is running from root. Let's check.
-        # If running `streamlit run frontend/streamlit_app.py` from root `D:\Brain_tumar`
-        # Then `image_test_sample` is in `image_test_sample`.
+        # relative path to image_test_sample from root
         sample_dir = "image_test_sample"
-        # Handle case if running from frontend dir
-        if not os.path.exists(sample_dir) and os.path.exists("../image_test_sample"):
-            sample_dir = "../image_test_sample"
+        # Handle case if running from frontend dir (locally mostly)
+        if not os.path.exists(sample_dir) and os.path.exists(os.path.join("..", sample_dir)):
+             sample_dir = os.path.join("..", sample_dir)
             
         if os.path.exists(sample_dir):
             sample_files = sorted([f for f in os.listdir(sample_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))])
@@ -125,13 +162,21 @@ with col2:
         else:
             with st.spinner("Analyzing image..."):
                 try:
-                    # Send request to backend
-                    # Send bytes with a filename
-                    files = {"file": (file_name, image_data, "image/jpeg")}
-                    response = requests.post(f"{BACKEND_URL}/predict", files=files, timeout=10)
+                    result = None
                     
-                    if response.status_code == 200:
-                        result = response.json()
+                    if DEPLOYMENT_MODE == "Cloud":
+                        # Direct call
+                        result = predict_mri(image_data)
+                    else:
+                        # HTTP Call
+                        files = {"file": (file_name, image_data, "image/jpeg")}
+                        response = requests.post(f"{BACKEND_URL}/predict", files=files, timeout=10)
+                        if response.status_code == 200:
+                            result = response.json()
+                        else:
+                            st.error(f"Prediction failed: {response.status_code}")
+                    
+                    if result:
                         prediction = result['prediction']
                         confidence = result['confidence']
                         probs = result['all_probabilities']
@@ -151,10 +196,15 @@ with col2:
                         with tab1:
                             if st.button("Generate Detailed Explanation"):
                                 with st.spinner("Consulting AI Specialist..."):
-                                    expl_res = requests.post(
-                                        f"{BACKEND_URL}/explain",
-                                        json=result
-                                    ).json()
+                                    expl_res = {}
+                                    if DEPLOYMENT_MODE == "Cloud":
+                                        expl_res = generate_medical_explanation(result)
+                                    else:
+                                        expl_res = requests.post(
+                                            f"{BACKEND_URL}/explain",
+                                            json=result
+                                        ).json()
+                                        
                                     st.markdown("### Medical Insight")
                                     st.write(expl_res.get("explanation", "No explanation available."))
                                     st.warning(f"⚠️ **Disclaimer:** {expl_res.get('disclaimer')}")
@@ -162,24 +212,29 @@ with col2:
                         with tab2:
                             city = st.text_input("Enter your city to find nearby neurologists:", placeholder="e.g., Indore, Mumbai")
                             if city:
-                                doc_res = requests.get(f"{BACKEND_URL}/doctors", params={"city": city}).json()
-                                doctors = doc_res.get("doctors", [])
+                                doctors = []
+                                if DEPLOYMENT_MODE == "Cloud":
+                                     # The finder returns a list directly
+                                     doctors = get_doctors_by_city(city)
+                                else:
+                                    doc_res = requests.get(f"{BACKEND_URL}/doctors", params={"city": city}).json()
+                                    doctors = doc_res.get("doctors", [])
                                 
                                 if doctors:
                                     for doc in doctors:
                                         with st.expander(f"{doc['name']} ({doc['specialization']})"):
-                                            st.write(f"**Hospital:** {doc.get('name')}") # Data json structure seemed mixed in context, adjusting generic
-                                            st.write(f"**Type:** {doc.get('type')}")
-                                            st.write(f"**Confidence:** {doc.get('confidence_level')}")
-                                            st.write(f"**Reason:** {doc.get('reason')}")
+                                            st.write(f"**Hospital:** {doc.get('hospital', doc.get('name'))}")
+                                            st.write(f"**Contact:** {doc.get('contact', 'N/A')}")
+                                            
                                 else:
                                     st.info(f"No specialists found in {city}.")
-                                    
-                    else:
-                        st.error(f"Prediction failed: {response.status_code}")
                         
                 except Exception as e:
+                    # Detailed error for debugging in cloud
+                    import traceback
                     st.error(f"Error during analysis: {str(e)}")
+                    if DEPLOYMENT_MODE == "Cloud":
+                        st.text(traceback.format_exc())
     else:
         st.info("👈 Please upload or select an MRI image to start the analysis.")
 
