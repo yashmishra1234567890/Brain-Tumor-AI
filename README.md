@@ -1,55 +1,140 @@
-# Brain Tumor MRI Classification
+# 🧠 NeuroScan AI — Brain Tumor Detection & Analysis
 
-This project provides a web app that classifies brain tumor types from MRI images using a deep learning model.
+**NeuroScan AI** is an AI-powered medical assistance system that analyzes **brain MRI scans** to provide **probabilistic tumor classification**, **AI-generated medical explanations**, and **city-based hospital recommendations**.
 
-The app is built with **Streamlit** and uses a pre-trained Keras model (`model.h5`).
+The system combines a **custom-trained Convolutional Neural Network (CNN)** with **Generative AI (LLM)** to deliver a production-style, end-to-end AI workflow.
 
----
-
-## Features
-
-* Upload brain MRI images (JPG, JPEG, PNG formats)
-* Predict tumor type:
-
-  * Glioma Tumor
-  * Meningioma Tumor
-  * No Tumor
-  * Pituitary Tumor
-* View prediction probabilities for each class
+> ⚠️ **Disclaimer**  
+> This project is for **educational and research purposes only**.  
+> It is **NOT a medical device** and must **NOT** be used for diagnosis or treatment decisions.
 
 ---
 
-## Getting Started
+## 🔗 Live Demo
 
-### Prerequisites
+| Component | Link |
+|----------|------|
+| 🧠 Live Application (Streamlit) | https://brain-tumor-ai-4u6rxcjzx8qqnkdkdhkaba.streamlit.app/ |
 
-* Python 3.7 or higher
-* Install required packages:
-
-  ```bash
-  pip install streamlit tensorflow pillow numpy
-  ```
-* Place your trained model file (`model.h5`) in the project directory
-
-### Running the App
-
-1. Open terminal/command prompt and navigate to the project folder:
-
-   ```bash
-   cd d:\Brain_tumar
-   ```
-2. Start the Streamlit app:
-
-   ```bash
-   streamlit run run.py
-   ```
-3. The app will open in your browser. Upload an MRI image to get predictions.
+> The live demo executes backend logic directly inside Streamlit for simplicity, while the FastAPI layer is preserved for production deployment.
 
 ---
 
-## Project Files
+## ✨ Key Features
 
-* `run.py` — Main Streamlit app
-* `model.h5` — Trained Keras model
-* `README.md` — Project documentation
-* `brain-diagnoses.ipynb` — Notebook with data analysis and model training 
+### 🔍 Brain Tumor Classification
+- **Custom CNN trained from scratch** on MRI images  
+- **No pre-trained weights used**
+- Achieves **~84% validation accuracy**
+- Supports 4 classes:
+  - Glioma Tumor
+  - Meningioma Tumor
+  - Pituitary Tumor
+  - No Tumor
+- Outputs **class probabilities**, not just labels
+
+### 🤖 AI Medical Explanation
+- Uses **Mistral-7B-Instruct via OpenRouter**
+- Converts predictions into **human-readable medical insights**
+- Strictly constrained to **avoid diagnosis or treatment advice**
+
+### 👨‍⚕️ Hospital Recommendation
+- City-based hospital suggestions
+- Uses **curated sample datasets** (no scraping, no reviews)
+- Ranked using heuristic signals:
+  - Hospital type (Government / Academic / Multi-specialty)
+  - Relevant specialization (Neurology / Neurosurgery)
+
+### 📊 Interactive Dashboard
+- Built with **Streamlit**
+- MRI image preview
+- Confidence & probability visualization
+- AI explanation panel with medical disclaimers
+
+---
+
+## 🏗️ System Architecture
+
+Streamlit UI
+│
+│ (Cloud Mode: Direct Function Calls)
+│ (Local / Production: REST API via FastAPI)
+▼
+AI Core
+├── CNN Model Inference (TensorFlow/Keras)
+├── LLM Explanation (OpenRouter / Mistral)
+├── Hospital Recommendation Logic
+└── Structured Response Schema
+
+
+---
+
+## 🛠️ Tech Stack
+
+- **Machine Learning**: TensorFlow, Keras, NumPy
+- **Deep Learning Model**: Custom CNN (trained from scratch)
+- **Frontend**: Streamlit
+- **Backend**: FastAPI (local / production)
+- **GenAI / LLM**: OpenRouter (`mistralai/mistral-7b-instruct`)
+- **Utilities**: Pillow, Requests, Python-Dotenv
+
+---
+
+## 📂 Project Structure
+
+Brain_tumor/
+├── backend/
+│ ├── app.py # FastAPI backend
+│ ├── run.py # Backend launcher
+│ ├── model/model.h5 # Trained CNN
+│ ├── services/ # Predictor, LLM, Doctor logic
+│ └── data/doctor.json # Curated hospital dataset
+│
+├── frontend/
+│ └── streamlit_app.py # Streamlit UI
+│
+├── notebooks/ # Model training & experiments
+├── image_test_sample/ # Sample MRI images
+└── README.md
+
+
+
+---
+
+## 📊 Dataset Used
+
+- **Brain Tumor MRI Dataset (Kaggle)**
+- 4 classes: Glioma, Meningioma, Pituitary, No Tumor
+- ~7,000 MRI images
+- Used to train the CNN **from scratch**
+
+---
+
+## 🧪 How to Use
+
+1. Open the live Streamlit app  
+2. Upload a brain MRI image (or use a sample image)  
+3. Click **Analyze Image**
+4. View:
+   - Predicted tumor class
+   - Confidence & probability distribution
+   - AI-generated medical explanation
+5. Enter a city to view **recommended hospitals**
+
+---
+
+## 🧠 Design Decisions & Ethics
+
+### ❌ What this project does NOT do
+- No scraping of commercial platforms (Practo, Justdial, Google Maps)
+- No fake ratings or reviews
+- No medical diagnosis or treatment advice
+- No medical device claims
+
+### ✅ What this project DOES
+- Uses curated, representative hospital datasets
+- Provides transparent probabilistic outputs
+- Includes medical disclaimers at every stage
+- Restricts LLMs to **explanation only**
+
+-----------------------------------------------------------------------
