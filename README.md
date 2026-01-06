@@ -54,18 +54,18 @@ The system combines a **custom-trained Convolutional Neural Network (CNN)** with
 ---
 
 ## 🏗️ System Architecture
-
+```
 Streamlit UI
-│
-│ (Cloud Mode: Direct Function Calls)
-│ (Local / Production: REST API via FastAPI)
-▼
-AI Core
-├── CNN Model Inference (TensorFlow/Keras)
-├── LLM Explanation (OpenRouter / Mistral)
-├── Hospital Recommendation Logic
-└── Structured Response Schema
-
+     │
+     │ (Cloud Mode: Direct Function Calls)
+     │ (Local Mode: REST API)
+     ▼
+  AI Core
+     ├── CNN Model Inference (TensorFlow/Keras)
+     ├── LLM Explanation (OpenRouter / Mistral)
+     ├── Hospital Recommendation Logic
+     └── Structured Response Schema
+```
 
 ---
 
@@ -82,20 +82,31 @@ AI Core
 
 ## 📂 Project Structure
 
+```
 Brain_tumor/
 ├── backend/
-│ ├── app.py # FastAPI backend
-│ ├── run.py # Backend launcher
-│ ├── model/model.h5 # Trained CNN
-│ ├── services/ # Predictor, LLM, Doctor logic
-│ └── data/doctor.json # Curated hospital dataset
+│   ├── app.py                    # FastAPI backend
+│   ├── run.py                    # Backend launcher
+│   ├── model/
+│   │   └── model.h5              # Trained CNN model
+│   ├── services/
+│   │   ├── predictor.py          # CNN inference logic
+│   │   ├── llm_explainer.py      # LLM explanation logic
+│   │   └── doctor_finder.py      # Hospital recommendation logic
+│   ├── utils/                    # Image & response helpers
+│   └── data/
+│       └── doctors.json          # Curated hospital dataset
 │
 ├── frontend/
-│ └── streamlit_app.py # Streamlit UI
+│   ├── streamlit_app.py          # Streamlit UI
+│   └── requirements.txt
 │
-├── notebooks/ # Model training & experiments
-├── image_test_sample/ # Sample MRI images
+├── notebooks/
+│   └── brain_diagnosis.ipynb     # Model training & experiments
+│
+├── image_test_sample/            # Sample MRI images
 └── README.md
+```
 
 
 
@@ -138,3 +149,4 @@ Brain_tumor/
 - Restricts LLMs to **explanation only**
 
 -----------------------------------------------------------------------
+
