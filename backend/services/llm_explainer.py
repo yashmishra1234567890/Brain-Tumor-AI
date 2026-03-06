@@ -38,7 +38,7 @@ def generate_medical_explanation(prediction_data: dict):
 
     try:
         response = client.chat.completions.create(
-            model="mistralai/mistral-7b-instruct",
+            model="mistralai/mistral-7b-instruct-v0.1",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
